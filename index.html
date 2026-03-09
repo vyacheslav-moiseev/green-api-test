@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <title>GREEN API Console</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+
+        body{
+            transition:0.3s;
+        }
+
+        .dark{
+            background:#1e1e1e;
+            color:white;
+        }
+
+        .box{
+            background:white;
+            padding:30px;
+            border-radius:12px;
+            box-shadow:0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .dark .box{
+            background:#2b2b2b;
+        }
+
+        textarea{
+            height:260px;
+            font-family:monospace;
+        }
+
+        .loader{
+            display:none;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+    <div class="box">
+
+        <div class="d-flex justify-content-between">
+
+            <h4>GREEN API Console</h4>
+
+            <button class="btn btn-sm btn-dark" onclick="toggleTheme()">Theme</button>
+
+        </div>
+
+        <hr>
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <label>idInstance</label>
+                <input id="idInstance" class="form-control">
+
+            </div>
+
+            <div class="col-md-6">
+
+                <label>ApiTokenInstance</label>
+                <input id="apiToken" class="form-control">
+
+            </div>
+
+        </div>
+
+        <hr>
+
+        <h5>Send Message</h5>
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <input id="phone" class="form-control" placeholder="Phone number">
+
+            </div>
+
+            <div class="col-md-6">
+
+                <input id="message" class="form-control" placeholder="Message">
+
+            </div>
+
+        </div>
+
+        <hr>
+
+        <h5>Send File By URL</h5>
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <input id="fileUrl" class="form-control" placeholder="File URL">
+
+            </div>
+
+            <div class="col-md-6">
+
+                <input id="fileName" class="form-control" placeholder="File name">
+
+            </div>
+
+        </div>
+
+        <hr>
+
+        <div class="d-grid gap-2">
+
+            <button class="btn btn-primary" onclick="getSettings()">getSettings</button>
+            <button class="btn btn-secondary" onclick="getState()">getStateInstance</button>
+            <button class="btn btn-success" onclick="sendMessage()">sendMessage</button>
+            <button class="btn btn-warning" onclick="sendFile()">sendFileByUrl</button>
+
+        </div>
+
+        <div class="text-center mt-3 loader" id="loader">
+
+            <div class="spinner-border"></div>
+
+        </div>
+
+        <hr>
+
+        <div class="d-flex justify-content-between mb-2">
+
+            <h5>API Response</h5>
+
+            <div>
+
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyResponse()">Copy</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearResponse()">Clear</button>
+
+            </div>
+
+        </div>
+
+        <textarea id="response" class="form-control" readonly></textarea>
+
+    </div>
+
+</div>
+
+<script>
+
+    loadSaved()
+
+    function toggleTheme(){
+
+        document.body.classList.toggle("dark")
+
+    }
+
+    function loadSaved(){
+
+        let id=localStorage.getItem("idInstance")
+        let token=localStorage.getItem("apiToken")
+
+        if(id) document.getElementById("idInstance").value=id
+        if(token) document.getElementById("apiToken").value=token
+
+    }
+
+    function saveParams(){
+
+        localStorage.setItem("idInstance",document.getElementById("idInstance").value)
+        localStorage.setItem("apiToken",document.getElementById("apiToken").value)
+
+    }
+
+    function showLoader(state){
+
+        document.getElementById("loader").style.display = state ? "block" : "none"
+
+    }
+
+    function showResponse(data){
+
+        document.getElementById("response").value =
+            JSON.stringify(data,null,2)
+
+    }
+
+    function copyResponse(){
+
+        navigator.clipboard.writeText(
+            document.getElementById("response").value
+        )
+
+    }
+
+    function clearResponse(){
+
+        document.getElementById("response").value=""
+
+    }
+
+    function params(){
+
+        saveParams()
+
+        return {
+
+            id:document.getElementById("idInstance").value,
+            token:document.getElementById("apiToken").value
+
+        }
+
+    }
+
+    async function request(url,method="GET",body=null){
+
+        showLoader(true)
+
+        try{
+
+            let res=await fetch(url,{
+                method:method,
+                headers:{'Content-Type':'application/json'},
+                body: body ? JSON.stringify(body):null
+            })
+
+            let data=await res.json()
+
+            showResponse(data)
+
+        }catch(e){
+
+            showResponse({error:e.message})
+
+        }
+
+        showLoader(false)
+
+    }
+
+    function getSettings(){
+
+        let {id,token}=params()
+
+        let url=`https://api.green-api.com/waInstance${id}/getSettings/${token}`
+
+        request(url)
+
+    }
+
+    function getState(){
+
+        let {id,token}=params()
+
+        let url=`https://api.green-api.com/waInstance${id}/getStateInstance/${token}`
+
+        request(url)
+
+    }
+
+    function sendMessage(){
+
+        let {id,token}=params()
+
+        let phone=document.getElementById("phone").value
+        let message=document.getElementById("message").value
+
+        let url=`https://api.green-api.com/waInstance${id}/sendMessage/${token}`
+
+        request(url,"POST",{
+
+            chatId: phone+"@c.us",
+            message: message
+
+        })
+
+    }
+
+    function sendFile(){
+
+        let {id,token}=params()
+
+        let phone=document.getElementById("phone").value
+        let urlFile=document.getElementById("fileUrl").value
+        let fileName=document.getElementById("fileName").value
+
+        let url=`https://api.green-api.com/waInstance${id}/sendFileByUrl/${token}`
+
+        request(url,"POST",{
+
+            chatId: phone+"@c.us",
+            urlFile:urlFile,
+            fileName:fileName
+
+        })
+
+    }
+
+</script>
+
+</body>
+</html>
