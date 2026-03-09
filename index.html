@@ -11,7 +11,8 @@
     <style>
 
         body{
-            transition:0.3s;
+            transition:.3s;
+            background:#f5f6fa;
         }
 
         .dark{
@@ -23,7 +24,7 @@
             background:white;
             padding:30px;
             border-radius:12px;
-            box-shadow:0 6px 20px rgba(0,0,0,0.1);
+            box-shadow:0 6px 20px rgba(0,0,0,.1);
         }
 
         .dark .box{
@@ -31,12 +32,18 @@
         }
 
         textarea{
-            height:260px;
+            height:240px;
             font-family:monospace;
         }
 
         .loader{
             display:none;
+        }
+
+        .history{
+            max-height:200px;
+            overflow:auto;
+            font-size:13px;
         }
 
     </style>
@@ -53,7 +60,12 @@
 
             <h4>GREEN API Console</h4>
 
-            <button class="btn btn-sm btn-dark" onclick="toggleTheme()">Theme</button>
+            <div>
+
+                <button class="btn btn-sm btn-dark" onclick="toggleTheme()">Theme</button>
+                <button class="btn btn-sm btn-info" onclick="fillTest()">Fill test</button>
+
+            </div>
 
         </div>
 
@@ -151,6 +163,12 @@
 
         <textarea id="response" class="form-control" readonly></textarea>
 
+        <hr>
+
+        <h6>Request History</h6>
+
+        <div class="history list-group" id="history"></div>
+
     </div>
 
 </div>
@@ -160,9 +178,7 @@
     loadSaved()
 
     function toggleTheme(){
-
         document.body.classList.toggle("dark")
-
     }
 
     function loadSaved(){
@@ -170,61 +186,73 @@
         let id=localStorage.getItem("idInstance")
         let token=localStorage.getItem("apiToken")
 
-        if(id) document.getElementById("idInstance").value=id
-        if(token) document.getElementById("apiToken").value=token
+        if(id) idInstance.value=id
+        if(token) apiToken.value=token
 
     }
 
     function saveParams(){
 
-        localStorage.setItem("idInstance",document.getElementById("idInstance").value)
-        localStorage.setItem("apiToken",document.getElementById("apiToken").value)
+        localStorage.setItem("idInstance",idInstance.value)
+        localStorage.setItem("apiToken",apiToken.value)
 
     }
 
     function showLoader(state){
-
-        document.getElementById("loader").style.display = state ? "block" : "none"
-
+        loader.style.display = state ? "block":"none"
     }
 
     function showResponse(data){
 
-        document.getElementById("response").value =
-            JSON.stringify(data,null,2)
+        response.value=JSON.stringify(data,null,2)
 
     }
 
     function copyResponse(){
-
-        navigator.clipboard.writeText(
-            document.getElementById("response").value
-        )
-
+        navigator.clipboard.writeText(response.value)
     }
 
     function clearResponse(){
+        response.value=""
+    }
 
-        document.getElementById("response").value=""
+    function logRequest(method,url){
+
+        let el=document.createElement("div")
+
+        el.className="list-group-item"
+
+        el.innerText=`${new Date().toLocaleTimeString()}  ${method}  ${url}`
+
+        history.prepend(el)
 
     }
 
-    function params(){
+    function validate(){
 
-        saveParams()
+        if(!idInstance.value || !apiToken.value){
 
-        return {
+            alert("Enter idInstance and ApiTokenInstance")
 
-            id:document.getElementById("idInstance").value,
-            token:document.getElementById("apiToken").value
+            return false
 
         }
 
+        return true
+
     }
 
-    async function request(url, method="GET", body=null){
+    function validatePhone(phone){
+
+        return /^[0-9]{10,15}$/.test(phone)
+
+    }
+
+    async function request(url,method="GET",body=null){
 
         showLoader(true)
+
+        logRequest(method,url)
 
         try{
 
@@ -239,9 +267,13 @@
             let data
 
             try{
+
                 data = JSON.parse(text)
+
             }catch{
-                data = { raw_response: text }
+
+                data = { raw_response:text }
+
             }
 
             showResponse(data)
@@ -256,61 +288,124 @@
 
     }
 
+    function params(){
+
+        if(!validate()) return null
+
+        saveParams()
+
+        return {
+
+            id:idInstance.value,
+            token:apiToken.value
+
+        }
+
+    }
+
     function getSettings(){
 
-        let {id,token}=params()
+        let p=params()
 
-        let url=`https://api.green-api.com/waInstance${id}/getSettings/${token}`
+        if(!p) return
 
-        request(url)
+        request(`https://api.green-api.com/waInstance${p.id}/getSettings/${p.token}`)
 
     }
 
     function getState(){
 
-        let {id,token}=params()
+        let p=params()
 
-        let url=`https://api.green-api.com/waInstance${id}/getStateInstance/${token}`
+        if(!p) return
 
-        request(url)
+        request(`https://api.green-api.com/waInstance${p.id}/getStateInstance/${p.token}`)
 
     }
 
     function sendMessage(){
 
-        let {id,token}=params()
+        let p=params()
+
+        if(!p) return
 
         let phone=document.getElementById("phone").value
+
+        if(!validatePhone(phone)){
+
+            alert("Invalid phone")
+
+            return
+
+        }
+
         let message=document.getElementById("message").value
 
-        let url=`https://api.green-api.com/waInstance${id}/sendMessage/${token}`
+        request(
 
-        request(url,"POST",{
+            `https://api.green-api.com/waInstance${p.id}/sendMessage/${p.token}`,
 
-            chatId: phone+"@c.us",
-            message: message
+            "POST",
 
-        })
+            {
+
+                chatId: phone+"@c.us",
+
+                message: message
+
+            }
+
+        )
 
     }
 
     function sendFile(){
 
-        let {id,token}=params()
+        let p=params()
+
+        if(!p) return
 
         let phone=document.getElementById("phone").value
-        let urlFile=document.getElementById("fileUrl").value
-        let fileName=document.getElementById("fileName").value
 
-        let url=`https://api.green-api.com/waInstance${id}/sendFileByUrl/${token}`
+        if(!validatePhone(phone)){
 
-        request(url,"POST",{
+            alert("Invalid phone")
 
-            chatId: phone+"@c.us",
-            urlFile:urlFile,
-            fileName:fileName
+            return
 
-        })
+        }
+
+        let urlFile=fileUrl.value
+        let fileName=fileName.value
+
+        request(
+
+            `https://api.green-api.com/waInstance${p.id}/sendFileByUrl/${p.token}`,
+
+            "POST",
+
+            {
+
+                chatId: phone+"@c.us",
+
+                urlFile:urlFile,
+
+                fileName:fileName
+
+            }
+
+        )
+
+    }
+
+    function fillTest(){
+
+        phone.value="31612345678"
+        message.value="Hello from GREEN API test"
+
+        fileUrl.value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+
+        fileName.value="test.pdf"
 
     }
 
