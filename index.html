@@ -218,13 +218,16 @@
 
     function logRequest(method,url){
 
-        let el=document.createElement("div")
+        let historyBox = document.getElementById("history")
 
-        el.className="list-group-item"
+        let el = document.createElement("div")
 
-        el.innerText=`${new Date().toLocaleTimeString()}  ${method}  ${url}`
+        el.className = "list-group-item"
 
-        history.prepend(el)
+        el.innerText =
+            `${new Date().toLocaleTimeString()}  ${method}  ${url}`
+
+        historyBox.prepend(el)
 
     }
 
