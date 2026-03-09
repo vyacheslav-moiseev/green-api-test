@@ -164,11 +164,19 @@
     function getSettings(){let p=params();if(!p) return;request(`https://api.green-api.com/waInstance${p.id}/getSettings/${p.token}`)}
     function getState(){let p=params();if(!p) return;request(`https://api.green-api.com/waInstance${p.id}/getStateInstance/${p.token}`)}
     function sendMessage(){
-        let p=params();if(!p) return
-        let phone=phone.value
-        if(!validatePhone(phone)){alert("Invalid phone");return}
-        let msg=message.value
-        request(`https://api.green-api.com/waInstance${p.id}/sendMessage/${p.token}`,"POST",{chatId:phone+"@c.us",message:msg})
+        let p = params();
+        if(!p) return;
+
+        let phoneVal = document.getElementById("phone").value;  // <-- изменено
+        if(!validatePhone(phoneVal)){alert("Invalid phone"); return;}
+
+        let msg = document.getElementById("message").value;
+
+        request(
+            `https://api.green-api.com/waInstance${p.id}/sendMessage/${p.token}`,
+            "POST",
+            { chatId: phoneVal+"@c.us", message: msg }
+        );
     }
     function sendFile(){
         let p=params();if(!p) return
